@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-package eu.hansolo.fx.sunburstchart.tools;
+package eu.hansolo.fx.sunburstchart;
 
-public class Helper {
-
+public enum VisibleData {
+    NONE, NAME, VALUE, NAME_VALUE
 }

@@ -16,8 +16,6 @@
 
 package eu.hansolo.fx.sunburstchart;
 
-import eu.hansolo.fx.sunburstchart.SunburstChart.TextOrientation;
-import eu.hansolo.fx.sunburstchart.SunburstChart.VisibleData;
 import eu.hansolo.fx.sunburstchart.tree.TreeNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -80,6 +78,11 @@ public class SunburstChartBuilder<B extends SunburstChartBuilder<B>> {
 
     public final B decimals(final int DECIMALS) {
         properties.put("decimals", new SimpleIntegerProperty(DECIMALS));
+        return (B)this;
+    }
+
+    public final B interactive(final boolean INTERACTIVE) {
+        properties.put("interactive", new SimpleBooleanProperty(INTERACTIVE));
         return (B)this;
     }
 
@@ -210,6 +213,8 @@ public class SunburstChartBuilder<B extends SunburstChartBuilder<B>> {
                 CONTROL.setUseColorFromParent(((BooleanProperty) properties.get(key)).get());
             } else if ("decimals".equals(key)) {
                 CONTROL.setDecimals(((IntegerProperty) properties.get(key)).get());
+            } else if ("interactive".equals(key)) {
+                CONTROL.setInteractive(((BooleanProperty) properties.get(key)).get());
             }
         }
         return CONTROL;

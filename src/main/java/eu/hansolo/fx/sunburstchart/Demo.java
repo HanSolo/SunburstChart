@@ -16,10 +16,17 @@
 
 package eu.hansolo.fx.sunburstchart;
 
-import eu.hansolo.fx.sunburstchart.SunburstChart.TextOrientation;
-import eu.hansolo.fx.sunburstchart.SunburstChart.VisibleData;
+import eu.hansolo.fx.sunburstchart.events.TreeNodeEvent.EventType;
 import eu.hansolo.fx.sunburstchart.tree.TreeNode;
 import javafx.application.Application;
+import javafx.collections.ObservableList;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.Label;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.scene.layout.StackPane;
@@ -45,8 +52,11 @@ public class Demo extends Application {
     private static final Color         GREEN_1  = Color.rgb(56, 142, 60);
     private static final Color         GREEN_2  = Color.rgb(76, 175, 80);
 
+    private static       int           noOfNodes = 0;
+
     private              TreeNode      tree;
     private              SunburstChart sunburstChart;
+    private              SunburstChart sunburstNodesChart;
 
     @Override public void init() {
         tree            = new TreeNode(new ChartData("ROOT"));
@@ -83,6 +93,13 @@ public class Demo extends Application {
         TreeNode week23 = new TreeNode(new ChartData("Week 23", 0.6, PINK_2), jun);
         TreeNode week24 = new TreeNode(new ChartData("Week 24", 0.5, PINK_2), jun);
 
+        tree.setOnTreeNodeEvent(e -> {
+            EventType type = e.getType();
+            if (EventType.NODE_SELECTED == type) {
+                TreeNode segment = e.getSource();
+                System.out.println(segment.getData().getName() + ": " + segment.getData().getValue());
+            }
+        });
 
         sunburstChart = SunburstChartBuilder.create()
                                             .prefSize(400, 400)
@@ -93,21 +110,65 @@ public class Demo extends Application {
                                             .backgroundColor(Color.WHITE)
                                             .textColor(Color.WHITE)
                                             .decimals(1)
+                                            .interactive(false)
                                             .build();
+
+        sunburstNodesChart = SunburstChartBuilder.create()
+                                                 .prefSize(400, 400)
+                                                 .tree(tree)
+                                                 .textOrientation(TextOrientation.TANGENT)
+                                                 .useColorFromParent(false)
+                                                 .visibleData(VisibleData.NAME)
+                                                 .backgroundColor(Color.WHITE)
+                                                 .textColor(Color.WHITE)
+                                                 .decimals(1)
+                                                 .interactive(true)
+                                                 .build();
     }
 
     @Override public void start(Stage stage) {
-        StackPane pane = new StackPane(sunburstChart);
+        GridPane pane = new GridPane();
+        Label nonInteractive = new Label("Non Interactive");
+        Label interactive    = new Label("Interactive");
+
+        pane.add(nonInteractive, 0, 0);
+        pane.add(sunburstChart, 0, 1);
+        pane.add(interactive, 1, 0);
+        pane.add(sunburstNodesChart, 1, 1);
+
+        GridPane.setHalignment(nonInteractive, HPos.CENTER);
+        GridPane.setHalignment(interactive, HPos.CENTER);
+
+        pane.setPadding(new Insets(10));
 
         Scene scene = new Scene(pane);
 
         stage.setTitle("JavaFX Sunburst Chart");
         stage.setScene(scene);
         stage.show();
+
+        //timer.start();
+
+        // Calculate number of nodes
+        calcNoOfNodes(pane);
+        System.out.println(noOfNodes + " Nodes in SceneGraph");
+
     }
 
     @Override public void stop() {
         System.exit(0);
+    }
+
+
+    // ******************** Misc **********************************************
+    private static void calcNoOfNodes(Node node) {
+        if (node instanceof Parent) {
+            if (((Parent) node).getChildrenUnmodifiable().size() != 0) {
+                ObservableList<Node> tempChildren = ((Parent) node).getChildrenUnmodifiable();
+                noOfNodes += tempChildren.size();
+                for (Node n : tempChildren) { calcNoOfNodes(n); }
+            }
+        }
     }
 
     public static void main(String[] args) {
