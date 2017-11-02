@@ -26,10 +26,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import javafx.scene.layout.StackPane;
 import javafx.scene.Scene;
 
 
@@ -55,8 +53,8 @@ public class Demo extends Application {
     private static       int           noOfNodes = 0;
 
     private              TreeNode      tree;
-    private              SunburstChart sunburstChart;
-    private              SunburstChart sunburstNodesChart;
+    private              SunburstChart nonInteractiveSunburstChart;
+    private              SunburstChart interactiveSunburstChart;
 
     @Override public void init() {
         tree            = new TreeNode(new ChartData("ROOT"));
@@ -101,29 +99,33 @@ public class Demo extends Application {
             }
         });
 
-        sunburstChart = SunburstChartBuilder.create()
-                                            .prefSize(400, 400)
-                                            .tree(tree)
-                                            .textOrientation(TextOrientation.TANGENT)
-                                            .useColorFromParent(false)
-                                            .visibleData(VisibleData.NAME)
-                                            .backgroundColor(Color.WHITE)
-                                            .textColor(Color.WHITE)
-                                            .decimals(1)
-                                            .interactive(false)
-                                            .build();
+        nonInteractiveSunburstChart = SunburstChartBuilder.create()
+                                                          .prefSize(400, 400)
+                                                          .tree(tree)
+                                                          .textOrientation(TextOrientation.TANGENT)
+                                                          .useColorFromParent(false)
+                                                          .visibleData(VisibleData.NAME)
+                                                          .backgroundColor(Color.WHITE)
+                                                          //.textColor(Color.WHITE)
+                                                          .autoTextColor(true)
+                                                          .useChartDataTextColor(true)
+                                                          .decimals(1)
+                                                          .interactive(false)
+                                                          .build();
 
-        sunburstNodesChart = SunburstChartBuilder.create()
-                                                 .prefSize(400, 400)
-                                                 .tree(tree)
-                                                 .textOrientation(TextOrientation.TANGENT)
-                                                 .useColorFromParent(false)
-                                                 .visibleData(VisibleData.NAME)
-                                                 .backgroundColor(Color.WHITE)
-                                                 .textColor(Color.WHITE)
-                                                 .decimals(1)
-                                                 .interactive(true)
-                                                 .build();
+        interactiveSunburstChart = SunburstChartBuilder.create()
+                                                       .prefSize(400, 400)
+                                                       .tree(tree)
+                                                       .textOrientation(TextOrientation.TANGENT)
+                                                       .useColorFromParent(false)
+                                                       .visibleData(VisibleData.NAME)
+                                                       .backgroundColor(Color.WHITE)
+                                                       //.textColor(Color.WHITE)
+                                                       .autoTextColor(true)
+                                                       .useChartDataTextColor(true)
+                                                       .decimals(1)
+                                                       .interactive(true)
+                                                       .build();
     }
 
     @Override public void start(Stage stage) {
@@ -132,9 +134,9 @@ public class Demo extends Application {
         Label interactive    = new Label("Interactive");
 
         pane.add(nonInteractive, 0, 0);
-        pane.add(sunburstChart, 0, 1);
+        pane.add(nonInteractiveSunburstChart, 0, 1);
         pane.add(interactive, 1, 0);
-        pane.add(sunburstNodesChart, 1, 1);
+        pane.add(interactiveSunburstChart, 1, 1);
 
         GridPane.setHalignment(nonInteractive, HPos.CENTER);
         GridPane.setHalignment(interactive, HPos.CENTER);
@@ -147,12 +149,17 @@ public class Demo extends Application {
         stage.setScene(scene);
         stage.show();
 
+        interactiveSunburstChart.setAutoTextColor(true);
+
         //timer.start();
 
         // Calculate number of nodes
-        calcNoOfNodes(pane);
-        System.out.println(noOfNodes + " Nodes in SceneGraph");
+        calcNoOfNodes(nonInteractiveSunburstChart);
+        System.out.println(noOfNodes + " Nodes in non interactive Sunburst Chart");
 
+        noOfNodes = 0;
+        calcNoOfNodes(interactiveSunburstChart);
+        System.out.println(noOfNodes + " Nodes in interactive Sunburst Chart");
     }
 
     @Override public void stop() {
