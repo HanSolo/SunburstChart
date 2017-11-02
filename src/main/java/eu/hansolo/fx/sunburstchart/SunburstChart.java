@@ -19,6 +19,7 @@ package eu.hansolo.fx.sunburstchart;
 import eu.hansolo.fx.sunburstchart.events.TreeNodeEvent;
 import eu.hansolo.fx.sunburstchart.events.TreeNodeEvent.EventType;
 import eu.hansolo.fx.sunburstchart.fonts.Fonts;
+import eu.hansolo.fx.sunburstchart.tools.Helper;
 import eu.hansolo.fx.sunburstchart.tree.TreeNode;
 import javafx.beans.DefaultProperty;
 import javafx.beans.InvalidationListener;
@@ -61,6 +62,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static eu.hansolo.fx.sunburstchart.tools.Helper.clamp;
+
 
 /**
  * User: hansolo
@@ -69,12 +72,14 @@ import java.util.Map;
  */
 @DefaultProperty("children")
 public class SunburstChart extends Region {
-    private static final double                          PREFERRED_WIDTH  = 250;
-    private static final double                          PREFERRED_HEIGHT = 250;
-    private static final double                          MINIMUM_WIDTH    = 50;
-    private static final double                          MINIMUM_HEIGHT   = 50;
-    private static final double                          MAXIMUM_WIDTH    = 2048;
-    private static final double                          MAXIMUM_HEIGHT   = 2048;
+    private static final double                          PREFERRED_WIDTH   = 250;
+    private static final double                          PREFERRED_HEIGHT  = 250;
+    private static final double                          MINIMUM_WIDTH     = 50;
+    private static final double                          MINIMUM_HEIGHT    = 50;
+    private static final double                          MAXIMUM_WIDTH     = 2048;
+    private static final double                          MAXIMUM_HEIGHT    = 2048;
+    private static final Color                           BRIGHT_TEXT_COLOR = Color.WHITE;
+    private static final Color                           DARK_TEXT_COLOR   = Color.BLACK;
     private              double                          size;
     private              double                          width;
     private              double                          height;
@@ -102,6 +107,14 @@ public class SunburstChart extends Region {
     private              IntegerProperty                 decimals;
     private              boolean                         _interactive;
     private              BooleanProperty                 interactive;
+    private              boolean                         _autoTextColor;
+    private              BooleanProperty                 autoTextColor;
+    private              Color                           _brightTextColor;
+    private              ObjectProperty<Color>           brightTextColor;
+    private              Color                           _darkTextColor;
+    private              ObjectProperty<Color>           darkTextColor;
+    private              boolean                         _useChartDataTextColor;
+    private              BooleanProperty                 useChartDataTextColor;
     private              String                          formatString;
     private              TreeNode                        tree;
     private              TreeNode                        root;
@@ -116,21 +129,25 @@ public class SunburstChart extends Region {
         this(new TreeNode(new ChartData()));
     }
     public SunburstChart(final TreeNode TREE) {
-        backgroundPaint     = Color.TRANSPARENT;
-        borderPaint         = Color.TRANSPARENT;
-        borderWidth         = 0d;
-        segments            = new ArrayList<>(64);
-        _visibleData        = VisibleData.NAME;
-        _textOrientation    = TextOrientation.TANGENT;
-        _backgroundColor    = Color.WHITE;
-        _textColor          = Color.BLACK;
-        _useColorFromParent = false;
-        _decimals           = 0;
-        _interactive        = false;
-        formatString        = "%.0f";
-        tree                = TREE;
-        levelMap            = new HashMap<>(8);
-        sizeListener        = o -> resize();
+        backgroundPaint        = Color.TRANSPARENT;
+        borderPaint            = Color.TRANSPARENT;
+        borderWidth            = 0d;
+        segments               = new ArrayList<>(64);
+        _visibleData           = VisibleData.NAME;
+        _textOrientation       = TextOrientation.TANGENT;
+        _backgroundColor       = Color.WHITE;
+        _textColor             = Color.BLACK;
+        _useColorFromParent    = false;
+        _decimals              = 0;
+        _interactive           = false;
+        _autoTextColor         = true;
+        _brightTextColor       = BRIGHT_TEXT_COLOR;
+        _darkTextColor         = DARK_TEXT_COLOR;
+        _useChartDataTextColor = false;
+        formatString           = "%.0f";
+        tree                   = TREE;
+        levelMap               = new HashMap<>(8);
+        sizeListener           = o -> resize();
         initGraphics();
         registerListeners();
     }
@@ -339,12 +356,126 @@ public class SunburstChart extends Region {
         return interactive;
     }
 
+    public boolean isAutoTextColor() { return null == autoTextColor ? _autoTextColor : autoTextColor.get(); }
+    public void setAutoTextColor(final boolean AUTOMATIC) {
+        if (null == autoTextColor) {
+            _autoTextColor = AUTOMATIC;
+            adjustTextColors();
+            redraw();
+        } else {
+            autoTextColor.set(AUTOMATIC);
+        }
+    }
+    public BooleanProperty autoTextColorProperty() {
+        if (null == autoTextColor) {
+            autoTextColor = new BooleanPropertyBase(_autoTextColor) {
+                @Override protected void invalidated() {
+                    adjustTextColors();
+                    redraw();
+                }
+                @Override public Object getBean() { return SunburstChart.this; }
+                @Override public String getName() { return "autoTextColor"; }
+            };
+        }
+        return autoTextColor;
+    }
+
+    public Color getBrightTextColor() { return null == brightTextColor ? _brightTextColor : brightTextColor.get(); }
+    public void setBrightTextColor(final Color COLOR) {
+        if (null == brightTextColor) {
+            _brightTextColor = COLOR;
+            if (isAutoTextColor()) {
+                adjustTextColors();
+                redraw();
+            }
+        } else {
+            brightTextColor.set(COLOR);
+        }
+    }
+    public ObjectProperty<Color> brightTextColorProperty() {
+        if (null == brightTextColor) {
+            brightTextColor = new ObjectPropertyBase<Color>(_brightTextColor) {
+                @Override protected void invalidated() {
+                    if (isAutoTextColor()) {
+                        adjustTextColors();
+                        redraw();
+                    }
+                }
+                @Override public Object getBean() { return SunburstChart.this; }
+                @Override public String getName() { return "brightTextColor"; }
+            };
+            _brightTextColor = null;
+        }
+        return brightTextColor;
+    }
+
+    public Color getDarkTextColor() { return null == darkTextColor ? _darkTextColor : darkTextColor.get(); }
+    public void setDarkTextColor(final Color COLOR) {
+        if (null == darkTextColor) {
+            _darkTextColor = COLOR;
+            if (isAutoTextColor()) {
+                adjustTextColors();
+                redraw();
+            }
+        } else {
+            darkTextColor.set(COLOR);
+        }
+    }
+    public ObjectProperty<Color> darkTextColorProperty() {
+        if (null == darkTextColor) {
+            darkTextColor = new ObjectPropertyBase<Color>(_darkTextColor) {
+                @Override protected void invalidated() {
+                    if (isAutoTextColor()) {
+                        adjustTextColors();
+                        redraw();
+                    }
+                }
+                @Override public Object getBean() { return SunburstChart.this; }
+                @Override public String getName() { return "darkTextColor"; }
+            };
+            _darkTextColor = null;
+        }
+        return darkTextColor;
+    }
+
+    public boolean getUseChartDataTextColor() { return null == useChartDataTextColor ? _useChartDataTextColor : useChartDataTextColor.get(); }
+    public void setUseChartDataTextColor(final boolean USE) {
+        if (null == useChartDataTextColor) {
+            _useChartDataTextColor = USE;
+            redraw();
+        } else {
+            useChartDataTextColor.set(USE);
+        }
+    }
+    public BooleanProperty useChartDataTextColor() {
+        if (null == useChartDataTextColor) {
+            useChartDataTextColor = new BooleanPropertyBase(_useChartDataTextColor) {
+                @Override protected void invalidated() { redraw(); }
+                @Override public Object getBean() { return SunburstChart.this; }
+                @Override public String getName() { return "useChartDataTextColor"; }
+            };
+        }
+        return useChartDataTextColor;
+    }
+
     public void setTree(final TreeNode TREE) {
         if (null != tree) { tree.flattened().forEach(node -> node.removeAllTreeNodeEventListeners()); }
         tree = TREE;
         tree.flattened().forEach(node -> node.setOnTreeNodeEvent(e -> redraw()));
         prepareData();
         drawChart();
+    }
+
+    private void adjustTextColors() {
+        Color brightColor = getBrightTextColor();
+        Color darkColor   = getDarkTextColor();
+        root.stream().forEach(node -> {
+            ChartData data = node.getData();
+            boolean darkFillColor = Helper.isDark(data.getFillColor());
+            boolean darkTextColor = Helper.isDark(data.getTextColor());
+            if (darkFillColor && darkTextColor) { data.setTextColor(brightColor); }
+            if (!darkFillColor && !darkTextColor) { data.setTextColor(darkColor); }
+        });
     }
 
     private void prepareData() {
@@ -360,7 +491,7 @@ public class SunburstChart extends Region {
             List<TreeNode> treeNodeList = levelMap.get(level);
             treeNodeList.stream()
                         .filter(node -> node.getChildren().isEmpty())
-                        .forEach(node ->node.addNode(new TreeNode(new ChartData("", 0, Color.TRANSPARENT), node)));
+                        .forEach(node ->node.addNode(new TreeNode(new ChartData("", 0, Color.TRANSPARENT, Color.TRANSPARENT), node)));
         }
     }
 
@@ -442,7 +573,7 @@ public class SunburstChart extends Region {
                         double textX      = centerX + textRadius * cosText;
                         double textY      = centerY - textRadius * sinText;
 
-                        chartCtx.setFill(textColor);
+                        chartCtx.setFill(getUseChartDataTextColor() ? segmentData.getTextColor() : textColor);
 
                         chartCtx.save();
                         chartCtx.translate(textX, textY);
@@ -525,12 +656,6 @@ public class SunburstChart extends Region {
             default:
                 break;
         }
-    }
-
-    private int clamp(final int MIN, final int MAX, final int VALUE) {
-        if (VALUE < MIN) return MIN;
-        if (VALUE > MAX) return MAX;
-        return VALUE;
     }
 
 
