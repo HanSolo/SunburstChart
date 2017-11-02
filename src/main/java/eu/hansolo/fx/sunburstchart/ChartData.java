@@ -29,6 +29,7 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -43,8 +44,10 @@ public class ChartData implements Comparable<ChartData> {
     private final ChartDataEvent               FINISHED_EVENT = new ChartDataEvent(EventType.FINISHED, ChartData.this);
     private       String                       name;
     private       double                       value;
+    private       double                       oldValue;
     private       Color                        fillColor;
     private       Color                        strokeColor;
+    private       Color                        textColor;
     private       Instant                      timestamp;
     private       boolean                      animated;
     private       long                         animationDuration;
@@ -55,43 +58,55 @@ public class ChartData implements Comparable<ChartData> {
 
     // ******************** Constructors **************************************
     public ChartData() {
-        this("", 0, Color.rgb(233, 30, 99), Color.TRANSPARENT, Instant.now(), true, 800);
+        this("", 0, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
     }
     public ChartData(final String NAME) {
-        this(NAME, 0, Color.rgb(233, 30, 99), Color.TRANSPARENT, Instant.now(), true, 800);
+        this(NAME, 0, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
     }
     public ChartData(double VALUE) {
-        this("", VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Instant.now(), true, 800);
+        this("", VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
     }
     public ChartData(final double VALUE, final Instant TIMESTAMP) {
-        this("", VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, TIMESTAMP, true, 800);
+        this("", VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, TIMESTAMP, true, 800);
     }
     public ChartData(final String NAME, final Color FILL_COLOR) {
-        this(NAME, 0, FILL_COLOR, Color.TRANSPARENT, Instant.now(), true, 800);
+        this(NAME, 0, FILL_COLOR, Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
     }
     public ChartData(final String NAME, final double VALUE) {
-        this(NAME, VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Instant.now(), true, 800);
+        this(NAME, VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
     }
     public ChartData(final String NAME, final double VALUE, final Instant TIMESTAMP) {
-        this(NAME, VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, TIMESTAMP, true, 800);
+        this(NAME, VALUE, Color.rgb(233, 30, 99), Color.TRANSPARENT, Color.BLACK, TIMESTAMP, true, 800);
     }
     public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR) {
-        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, Instant.now(), true, 800);
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, Color.BLACK, Instant.now(), true, 800);
+    }
+    public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Color TEXT_COLOR) {
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, TEXT_COLOR, Instant.now(), true, 800);
     }
     public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Instant TIMESTAMP) {
-        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, TIMESTAMP, true, 800);
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, Color.BLACK, TIMESTAMP, true, 800);
+    }
+    public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Color TEXT_COLOR, final Instant TIMESTAMP) {
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, TEXT_COLOR, TIMESTAMP, true, 800);
     }
     public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Instant TIMESTAMP, final boolean ANIMATED, final long ANIMATION_DURATION) {
-        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, TIMESTAMP, ANIMATED, ANIMATION_DURATION);
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, Color.BLACK, TIMESTAMP, ANIMATED, ANIMATION_DURATION);
     }
-    public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Color STROKE_COLOR, final Instant TIMESTAMP, final boolean ANIMATED, final long ANIMATION_DURATION) {
+    public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Color TEXT_COLOR, final Instant TIMESTAMP, final boolean ANIMATED, final long ANIMATION_DURATION) {
+        this(NAME, VALUE, FILL_COLOR, Color.TRANSPARENT, TEXT_COLOR, TIMESTAMP, ANIMATED, ANIMATION_DURATION);
+    }
+    public ChartData(final String NAME, final double VALUE, final Color FILL_COLOR, final Color STROKE_COLOR, final Color TEXT_COLOR, final Instant TIMESTAMP, final boolean ANIMATED, final long ANIMATION_DURATION) {
         name              = NAME;
         value             = VALUE;
+        oldValue          = 0;
         fillColor         = FILL_COLOR;
         strokeColor       = STROKE_COLOR;
+        textColor         = TEXT_COLOR;
         timestamp         = TIMESTAMP;
         currentValue      = new DoublePropertyBase(value) {
             @Override protected void invalidated() {
+                oldValue = value;
                 value = get();
                 fireChartDataEvent(UPDATE_EVENT);
             }
@@ -124,10 +139,13 @@ public class ChartData implements Comparable<ChartData> {
             timeline.getKeyFrames().setAll(kf1, kf2);
             timeline.play();
         } else {
+            oldValue = value;
             value = VALUE;
             fireChartDataEvent(FINISHED_EVENT);
         }
     }
+
+    public double getOldValue() { return oldValue; }
 
     public Color getFillColor() { return fillColor; }
     public void setFillColor(final Color COLOR) {
@@ -141,13 +159,23 @@ public class ChartData implements Comparable<ChartData> {
         fireChartDataEvent(UPDATE_EVENT);
     }
 
+    public Color getTextColor() { return textColor; }
+    public void setTextColor(final Color COLOR) {
+        textColor = COLOR;
+        fireChartDataEvent(UPDATE_EVENT);
+    }
+
     public Instant getTimestamp() { return timestamp; }
     public void setTimestamp(final Instant TIMESTAMP) {
         timestamp = TIMESTAMP;
         fireChartDataEvent(UPDATE_EVENT);
     }
 
+    public ZonedDateTime getTimestampAdDateTime() { return getTimestampAsDateTime(ZoneId.systemDefault()); }
     public ZonedDateTime getTimestampAsDateTime(final ZoneId ZONE_ID) { return ZonedDateTime.ofInstant(timestamp, ZONE_ID); }
+
+    public LocalDate getTimestampAsLocalDate() { return getTimestampAsLocalDate(ZoneId.systemDefault()); }
+    public LocalDate getTimestampAsLocalDate(final ZoneId ZONE_ID) { return getTimestampAsDateTime(ZONE_ID).toLocalDate(); }
 
     public boolean isAnimated() { return animated; }
     public void setAnimated(final boolean ANIMATED) { animated = ANIMATED; }
